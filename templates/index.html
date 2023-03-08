@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <title>{{data[0]}}</title>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=f30393db-f7e9-4ff2-a3f3-0f02cfb8bf28&lang=ru_RU" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+        window.onload=function(){
+            let button = document.getElementById('go');
+            let myPlacemark;
+            let myRoute;
+            let myMap;
+            ymaps.ready(init);
+            function init(){
+
+                myRoute = new ymaps.multiRouter.MultiRoute({
+                    referencePoints: {{ data[2] }},
+                    params: {
+                        results: 1
+                    }
+                }, {
+                    boundsAutoApply: true
+                });
+                    
+
+                myMap = new ymaps.Map("map", {
+                    center: {{ data[2][0]}},
+                    zoom: 14
+                });
+
+                myPlacemark = new ymaps.Placemark({{ data[2][0]}}, {}, {
+                    preset: 'islands#redIcon'
+                });
+        
+                myMap.geoObjects.add(myPlacemark)
+                myMap.geoObjects.add(myRoute);
+            }
+
+            function swapper(){
+                var route = myRoute.getRoutes().get(0);
+                var pathCord = []
+                for (var i = 0; i < route.getPaths().getLength(); i++) {
+                    way = route.getPaths().get(i);               
+                    segments = way.getSegments();
+                    for (var j = 0; j < segments.getLength(); j++) {
+                        pathCord.push(segments.get(j).geometry.getCoordinates())
+                    }
+                }
+                let step = 0; // для путей
+                let step_max = (pathCord.length - 1);
+                let path_step = 0; // для шага точки в текущем пути
+                let endPoint = pathCord[step_max][pathCord[step_max].length - 1]
+                console.log(endPoint);
+                let stepInterval = setInterval(()=>{
+                    let placeMarkCoords = myPlacemark.geometry.getCoordinates();
+                    if ( placeMarkCoords[0] == endPoint[0] && placeMarkCoords[1] == endPoint[1]){
+                        clearInterval(stepInterval)
+                    } else {
+                        let path_length = (pathCord[step].length - 1)
+                        if (path_step > path_length) {
+                            ++step;
+                            path_step = 0;
+                        }
+                        myPlacemark.geometry.setCoordinates([pathCord[step][path_step][0],pathCord[step][path_step][1]]);
+                        ++path_step;    
+                    } 
+                },400)
+            }
+      
+            if(button){
+                button.addEventListener('click', swapper, false);
+            }
+        }
+    </script>
+    <style>
+        #go {
+            width: 100%;
+            height: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map" style="width: 100%; height: 800px"></div>
+    <br>
+    <div id="buttonsList">
+        <button id='go'>Поехали</button>      
+    </div>
+    
+</body>
+</html>
